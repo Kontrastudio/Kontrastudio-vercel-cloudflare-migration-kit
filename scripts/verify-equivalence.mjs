@@ -30,6 +30,20 @@ function normalizedHeader(name, value) {
   return value.trim();
 }
 
+function normalizedLocation(location, requestUrl) {
+  if (!location) return null;
+  try {
+    const request = new URL(requestUrl);
+    const resolved = new URL(location, request);
+    if (resolved.origin === request.origin) {
+      return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    }
+    return resolved.toString();
+  } catch {
+    return location.trim();
+  }
+}
+
 function htmlSemantics(html) {
   const pick = (pattern) => html.match(pattern)?.[1]?.trim() || null;
   return {
@@ -99,26 +113,37 @@ for (const route of routes) {
     ok = false;
   }
 
-  for (const name of headerNames) {
-    const key = name.toLowerCase();
-    if (a.headers[key] !== b.headers[key]) {
-      fail(`${route}: ${key} differs (${JSON.stringify(a.headers[key])} source, ${JSON.stringify(b.headers[key])} candidate)`);
-      ok = false;
-    }
+  const aLocation = normalizedLocation(a.location, sourceUrl);
+  const bLocation = normalizedLocation(b.location, targetUrl);
+  if (aLocation !== bLocation) {
+    fail(`${route}: redirect location differs (${JSON.stringify(aLocation)} source, ${JSON.stringify(bLocation)} candidate)`);
+    ok = false;
   }
 
-  if (a.semantics || b.semantics) {
-    for (const key of ['title', 'canonical', 'robots']) {
-      if ((a.semantics?.[key] || null) !== (b.semantics?.[key] || null)) {
-        fail(`${route}: HTML ${key} differs (${JSON.stringify(a.semantics?.[key] || null)} source, ${JSON.stringify(b.semantics?.[key] || null)} candidate)`);
+  const isRedirect = (a.status >= 300 && a.status < 400) || (b.status >= 300 && b.status < 400);
+
+  if (!isRedirect) {
+    for (const name of headerNames) {
+      const key = name.toLowerCase();
+      if (a.headers[key] !== b.headers[key]) {
+        fail(`${route}: ${key} differs (${JSON.stringify(a.headers[key])} source, ${JSON.stringify(b.headers[key])} candidate)`);
         ok = false;
       }
     }
-  }
 
-  if (exactBodyRoutes.has(route) && sha256(a.body) !== sha256(b.body)) {
-    fail(`${route}: exact body differs (${sha256(a.body)} source, ${sha256(b.body)} candidate)`);
-    ok = false;
+    if (a.semantics || b.semantics) {
+      for (const key of ['title', 'canonical', 'robots']) {
+        if ((a.semantics?.[key] || null) !== (b.semantics?.[key] || null)) {
+          fail(`${route}: HTML ${key} differs (${JSON.stringify(a.semantics?.[key] || null)} source, ${JSON.stringify(b.semantics?.[key] || null)} candidate)`);
+          ok = false;
+        }
+      }
+    }
+
+    if (exactBodyRoutes.has(route) && sha256(a.body) !== sha256(b.body)) {
+      fail(`${route}: exact body differs (${sha256(a.body)} source, ${sha256(b.body)} candidate)`);
+      ok = false;
+    }
   }
 
   if (ok) console.log(`✓ ${route}`);
