@@ -21,6 +21,7 @@
       "/contact",
       "/how-it-works",
       "/legal",
+      "/impressum",
       "/privacy",
       "/cookie-policy",
       "/kontrasalon",
@@ -35,7 +36,8 @@
       {
         "url": "https://kontrastudio.eu/about?probe=1",
         "status": 307,
-        "location": "https://www.kontrastudio.eu/about?probe=1"
+        "location": "https://www.kontrastudio.eu/about?probe=1",
+        "candidateMode": "source-only"
       }
     ]
   },
@@ -43,6 +45,7 @@
     "Second real migration fixture.",
     "The embedded Sanity Studio has a distinct CSP and must remain functional.",
     "The 307 apex redirect is baseline-driven: preserve observed production behavior rather than an unseen app-level intention.",
+    "The canonical /impressum redirect is in verify.routes so source and workers.dev candidate are compared directly.",
     "POST /api/inquiry and POST /api/uploads require safe project-specific probes in addition to generic GET equivalence."
   ]
 }
