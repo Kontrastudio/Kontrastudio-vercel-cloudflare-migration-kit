@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Production-safe Vercel to Cloudflare migration verification tooling.",
   "scripts": {
+    "baseline": "node scripts/capture-baseline.mjs",
     "guard": "node scripts/guard-domains.mjs",
     "verify": "node scripts/verify-equivalence.mjs",
     "test": "node scripts/self-test.mjs"
