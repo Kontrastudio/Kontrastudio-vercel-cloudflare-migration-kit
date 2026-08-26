@@ -3,7 +3,9 @@ name: migration-kit-ci
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feat/initial-migration-kit
 
 permissions:
   contents: read
