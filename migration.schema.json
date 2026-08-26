@@ -64,6 +64,25 @@
             "permissions-policy"
           ]
         },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^/" },
+              "width": { "type": "integer", "minimum": 16, "maximum": 4096, "default": 640 },
+              "quality": { "type": "integer", "minimum": 1, "maximum": 100, "default": 75 },
+              "optimizer": {
+                "type": "boolean",
+                "default": true,
+                "description": "Also exercise Next.js /_next/image for this asset. Disable only when the application intentionally does not use Next image optimization."
+              }
+            }
+          },
+          "default": []
+        },
         "redirects": {
           "type": "array",
           "items": {

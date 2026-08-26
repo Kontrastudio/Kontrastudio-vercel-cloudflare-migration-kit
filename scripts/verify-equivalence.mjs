@@ -30,20 +30,6 @@ function normalizedHeader(name, value) {
   return value.trim();
 }
 
-function normalizedLocation(location, requestUrl) {
-  if (!location) return null;
-  try {
-    const request = new URL(requestUrl);
-    const resolved = new URL(location, request);
-    if (resolved.origin === request.origin) {
-      return `${resolved.pathname}${resolved.search}${resolved.hash}`;
-    }
-    return resolved.toString();
-  } catch {
-    return location.trim();
-  }
-}
-
 function normalizedCrossDeploymentLocation(location, requestUrl, knownOrigins) {
   if (!location) return null;
   try {
@@ -90,6 +76,37 @@ async function snapshot(url, headerNames) {
     body,
     semantics: contentType.includes('text/html') ? htmlSemantics(body) : null
   };
+}
+
+async function imageSnapshot(url) {
+  const response = await fetch(url, {
+    redirect: 'manual',
+    headers: {
+      'accept': 'image/avif,image/webp,image/*,*/*;q=0.8',
+      'user-agent': 'kontrastudio-vercel-cloudflare-migration-kit/0.1'
+    }
+  });
+  const body = await response.arrayBuffer();
+  return {
+    status: response.status,
+    contentType: normalizedHeader('content-type', response.headers.get('content-type')),
+    bytes: body.byteLength
+  };
+}
+
+function nextImageUrl(base, image) {
+  const url = new URL('/_next/image', base);
+  url.searchParams.set('url', image.path);
+  url.searchParams.set('w', String(image.width || 640));
+  url.searchParams.set('q', String(image.quality || 75));
+  return url.toString();
+}
+
+function validImageResponse(snapshot) {
+  return snapshot.status === 200
+    && snapshot.bytes > 0
+    && typeof snapshot.contentType === 'string'
+    && snapshot.contentType.startsWith('image/');
 }
 
 const manifestPath = process.argv[2] || process.env.MIGRATION_MANIFEST;
@@ -167,6 +184,44 @@ for (const route of routes) {
   if (ok) console.log(`✓ ${route}`);
 }
 
+for (const image of manifest.verify?.images || []) {
+  const sourceAssetUrl = routeUrl(source, image.path);
+  const targetAssetUrl = routeUrl(target, image.path);
+  const [sourceAsset, targetAsset] = await Promise.all([
+    imageSnapshot(sourceAssetUrl),
+    imageSnapshot(targetAssetUrl)
+  ]);
+
+  if (!validImageResponse(sourceAsset)) {
+    fail(`image ${image.path}: source asset failed (${sourceAsset.status}, ${sourceAsset.contentType}, ${sourceAsset.bytes} bytes)`);
+    continue;
+  }
+  if (!validImageResponse(targetAsset)) {
+    fail(`image ${image.path}: candidate asset failed (${targetAsset.status}, ${targetAsset.contentType}, ${targetAsset.bytes} bytes)`);
+    continue;
+  }
+
+  if (image.optimizer !== false) {
+    const sourceOptimizedUrl = nextImageUrl(source, image);
+    const targetOptimizedUrl = nextImageUrl(target, image);
+    const [sourceOptimized, targetOptimized] = await Promise.all([
+      imageSnapshot(sourceOptimizedUrl),
+      imageSnapshot(targetOptimizedUrl)
+    ]);
+
+    if (!validImageResponse(sourceOptimized)) {
+      fail(`image ${image.path}: source /_next/image failed (${sourceOptimized.status}, ${sourceOptimized.contentType}, ${sourceOptimized.bytes} bytes)`);
+      continue;
+    }
+    if (!validImageResponse(targetOptimized)) {
+      fail(`image ${image.path}: candidate /_next/image failed (${targetOptimized.status}, ${targetOptimized.contentType}, ${targetOptimized.bytes} bytes)`);
+      continue;
+    }
+  }
+
+  console.log(`✓ image ${image.path}${image.optimizer === false ? '' : ' + /_next/image'}`);
+}
+
 for (const redirect of manifest.verify?.redirects || []) {
   const sourceRequestUrl = redirect.url;
   const sourceResponse = await fetch(sourceRequestUrl, {
@@ -213,5 +268,6 @@ for (const redirect of manifest.verify?.redirects || []) {
 }
 
 if (!process.exitCode) {
-  console.log(`equivalence verifier: ${routes.length} route(s) matched ${source.origin} ↔ ${target.origin}`);
+  const imageCount = manifest.verify?.images?.length || 0;
+  console.log(`equivalence verifier: ${routes.length} route(s) and ${imageCount} image probe(s) matched ${source.origin} ↔ ${target.origin}`);
 }
