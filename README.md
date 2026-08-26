@@ -6,7 +6,7 @@ The kit is built around four ideas:
 
 1. **Audit before adaptation** — identify Vercel-specific behavior, runtime assumptions, environment requirements and protected hostnames before changing infrastructure.
 2. **Candidate before cutover** — deploy to an independent `workers.dev` candidate and verify it before touching production DNS.
-3. **Behavioral equivalence** — compare routes, redirects, selected headers, SEO, assets and safe API behavior between the existing production deployment and the candidate.
+3. **Behavioral equivalence** — compare routes, redirects, selected headers, SEO, browser-loaded image paths and safe API behavior between the existing production deployment and the candidate.
 4. **Rollback-aware cutover** — treat hostname changes as explicit stages, preserve the previous DNS values, and verify protected sibling services after every production change.
 
 ## Status
@@ -14,7 +14,7 @@ The kit is built around four ideas:
 `v0.1-dev` — being extracted from two real migrations:
 
 - a multilingual Next.js personal site with middleware redirects, API routes and SEO checks;
-- the Kontrastudio public site, including an embedded Sanity Studio and inquiry API.
+- the Kontrastudio public site, including an embedded Sanity Studio, inquiry API and Next.js image optimization.
 
 The repository is intentionally conservative. It does **not** promise one-click migration for every Vercel project and it never assumes that arbitrary DNS changes are safe.
 
@@ -64,6 +64,13 @@ Target repositories describe site-specific facts in a small manifest. The generi
   ],
   "verify": {
     "routes": ["/", "/about", "/contact", "/robots.txt", "/sitemap.xml"],
+    "images": [
+      {
+        "path": "/images/hero.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    ],
     "redirects": [
       {
         "url": "https://example.com/about?probe=1",
@@ -74,6 +81,8 @@ Target repositories describe site-specific facts in a small manifest. The generi
   }
 }
 ```
+
+Image probes first fetch the original asset from source and candidate and require a non-empty `image/*` response. By default they also exercise each deployment's real Next.js `/_next/image` endpoint. This catches a class of migration failures that HTML-only checks cannot see—for example, a Cloudflare Worker that serves the page correctly but is missing the Images binding required by the optimizer.
 
 ## Baseline first
 
@@ -93,7 +102,7 @@ See `docs/baseline-and-candidate-boundaries.md` for the distinction between what
 
 - `scripts/capture-baseline.mjs` — records DNS rollback facts and current HTTP behavior before migration.
 - `scripts/guard-domains.mjs` — rejects wildcard or unexpected production hostnames and protects sibling services.
-- `scripts/verify-equivalence.mjs` — compares source and candidate HTTP behavior while ignoring platform-specific noise.
+- `scripts/verify-equivalence.mjs` — compares source and candidate routes, redirect destinations, selected headers, SEO semantics and representative image runtime paths while ignoring platform-specific noise.
 - `migration.schema.json` — machine-readable migration manifest contract.
 - `examples/` — real-world-shaped manifests used as regression fixtures.
 
