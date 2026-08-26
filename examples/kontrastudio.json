@@ -32,6 +32,18 @@
     "exactBodyRoutes": [
       "/robots.txt"
     ],
+    "images": [
+      {
+        "path": "/2026-02-24_Kontrastudio_Website_Photo_01_Piano_By_Window.png",
+        "width": 640,
+        "quality": 75
+      },
+      {
+        "path": "/images/artists/marley-erickson/marley-erickson-portrait-in-red.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    ],
     "redirects": [
       {
         "url": "https://kontrastudio.eu/about?probe=1",
@@ -46,6 +58,7 @@
     "The embedded Sanity Studio has a distinct CSP and must remain functional.",
     "The 307 apex redirect is baseline-driven: preserve observed production behavior rather than an unseen app-level intention.",
     "The canonical /impressum redirect is in verify.routes so source and workers.dev candidate are compared directly.",
+    "Image probes exercise both original static bytes and Next.js /_next/image so a missing Cloudflare Images binding cannot pass candidate verification.",
     "POST /api/inquiry and POST /api/uploads require safe project-specific probes in addition to generic GET equivalence."
   ]
 }
