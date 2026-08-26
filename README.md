@@ -75,8 +75,23 @@ Target repositories describe site-specific facts in a small manifest. The generi
 }
 ```
 
+## Baseline first
+
+Before changing a hostname, capture what production actually does:
+
+```bash
+npm run baseline -- migration.json baseline.json
+```
+
+The baseline command records A, AAAA and CNAME answers plus a small HTTP snapshot for the apex, canonical hostname and every protected sibling hostname. Keep that output with the migration record so rollback values come from evidence rather than memory.
+
+This matters because live platform behavior can differ from application-level intent. If repo middleware says 308 but the public Vercel hostname actually returns 307, a pure hosting migration should preserve the observed 307 unless a behavior change is explicitly approved separately.
+
+See `docs/baseline-and-candidate-boundaries.md` for the distinction between what an isolated `workers.dev` candidate can prove and what must be rechecked on the real hostname after cutover.
+
 ## Current tools
 
+- `scripts/capture-baseline.mjs` — records DNS rollback facts and current HTTP behavior before migration.
 - `scripts/guard-domains.mjs` — rejects wildcard or unexpected production hostnames and protects sibling services.
 - `scripts/verify-equivalence.mjs` — compares source and candidate HTTP behavior while ignoring platform-specific noise.
 - `migration.schema.json` — machine-readable migration manifest contract.

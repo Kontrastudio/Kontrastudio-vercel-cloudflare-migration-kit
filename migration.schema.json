@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Kontrastudio/Kontrastudio-vercel-cloudflare-migration-kit/main/migration.schema.json",
+  "title": "Vercel to Cloudflare migration manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["worker", "source", "production", "verify"],
+  "properties": {
+    "worker": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production"],
+      "properties": {
+        "production": { "type": "string", "format": "uri", "pattern": "^https://" }
+      }
+    },
+    "production": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apex", "canonical"],
+      "properties": {
+        "apex": { "$ref": "#/$defs/hostname" },
+        "canonical": { "$ref": "#/$defs/hostname" }
+      }
+    },
+    "protectedHosts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/hostname" },
+      "default": []
+    },
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routes"],
+      "properties": {
+        "routes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^/" }
+        },
+        "exactBodyRoutes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^/" },
+          "default": []
+        },
+        "headers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 },
+          "default": [
+            "content-type",
+            "content-security-policy",
+            "x-content-type-options",
+            "referrer-policy",
+            "x-frame-options",
+            "permissions-policy"
+          ]
+        },
+        "redirects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "status", "location"],
+            "properties": {
+              "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+              "status": { "type": "integer", "minimum": 300, "maximum": 399 },
+              "location": { "type": "string", "format": "uri", "pattern": "^https://" },
+              "candidateMode": {
+                "type": "string",
+                "enum": ["compare", "source-only"],
+                "default": "compare",
+                "description": "Use source-only for hostname-dependent redirects that cannot be exercised honestly on a workers.dev hostname before cutover."
+              }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  },
+  "$defs": {
+    "hostname": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\*\\.)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+    }
+  }
+}
