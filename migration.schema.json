@@ -73,7 +73,13 @@
             "properties": {
               "url": { "type": "string", "format": "uri", "pattern": "^https://" },
               "status": { "type": "integer", "minimum": 300, "maximum": 399 },
-              "location": { "type": "string", "format": "uri", "pattern": "^https://" }
+              "location": { "type": "string", "format": "uri", "pattern": "^https://" },
+              "candidateMode": {
+                "type": "string",
+                "enum": ["compare", "source-only"],
+                "default": "compare",
+                "description": "Use source-only for hostname-dependent redirects that cannot be exercised honestly on a workers.dev hostname before cutover."
+              }
             }
           },
           "default": []
