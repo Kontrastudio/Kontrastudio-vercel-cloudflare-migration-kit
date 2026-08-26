@@ -30,12 +30,14 @@
       {
         "url": "https://theothorsson.com/en/about?probe=1",
         "status": 308,
-        "location": "https://www.theothorsson.com/en/about?probe=1"
+        "location": "https://www.theothorsson.com/en/about?probe=1",
+        "candidateMode": "source-only"
       }
     ]
   },
   "notes": [
     "First real migration fixture.",
+    "Apex redirect is hostname-dependent and therefore source-only until the real apex custom domain is attached.",
     "Locale-cookie behavior and safe contact-API probes require project-specific checks beyond the generic v0.1 verifier."
   ]
 }
