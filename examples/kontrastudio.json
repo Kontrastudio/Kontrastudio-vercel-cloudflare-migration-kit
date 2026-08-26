@@ -1,0 +1,47 @@
+{
+  "$schema": "../migration.schema.json",
+  "worker": "kontrastudio-site",
+  "source": {
+    "production": "https://www.kontrastudio.eu"
+  },
+  "production": {
+    "apex": "kontrastudio.eu",
+    "canonical": "www.kontrastudio.eu"
+  },
+  "protectedHosts": [
+    "profile.kontrastudio.eu"
+  ],
+  "verify": {
+    "routes": [
+      "/",
+      "/about",
+      "/services",
+      "/products",
+      "/products/artist-profile-builder",
+      "/contact",
+      "/how-it-works",
+      "/legal",
+      "/privacy",
+      "/cookie-policy",
+      "/kontrasalon",
+      "/studio",
+      "/robots.txt",
+      "/sitemap.xml"
+    ],
+    "exactBodyRoutes": [
+      "/robots.txt"
+    ],
+    "redirects": [
+      {
+        "url": "https://kontrastudio.eu/about?probe=1",
+        "status": 308,
+        "location": "https://www.kontrastudio.eu/about?probe=1"
+      }
+    ]
+  },
+  "notes": [
+    "Second real migration fixture.",
+    "The embedded Sanity Studio has a distinct CSP and must remain functional.",
+    "POST /api/inquiry and POST /api/uploads require safe project-specific probes in addition to generic GET equivalence."
+  ]
+}
