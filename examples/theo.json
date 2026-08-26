@@ -1,0 +1,41 @@
+{
+  "$schema": "../migration.schema.json",
+  "worker": "theo-thorsson-site",
+  "source": {
+    "production": "https://www.theothorsson.com"
+  },
+  "production": {
+    "apex": "theothorsson.com",
+    "canonical": "www.theothorsson.com"
+  },
+  "protectedHosts": [
+    "vault.theothorsson.com",
+    "deliver.theothorsson.com"
+  ],
+  "verify": {
+    "routes": [
+      "/",
+      "/en",
+      "/de",
+      "/es",
+      "/sv",
+      "/en/about",
+      "/robots.txt",
+      "/sitemap.xml"
+    ],
+    "exactBodyRoutes": [
+      "/robots.txt"
+    ],
+    "redirects": [
+      {
+        "url": "https://theothorsson.com/en/about?probe=1",
+        "status": 308,
+        "location": "https://www.theothorsson.com/en/about?probe=1"
+      }
+    ]
+  },
+  "notes": [
+    "First real migration fixture.",
+    "Locale-cookie behavior and safe contact-API probes require project-specific checks beyond the generic v0.1 verifier."
+  ]
+}
