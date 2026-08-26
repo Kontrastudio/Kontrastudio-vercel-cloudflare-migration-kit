@@ -1,0 +1,16 @@
+{
+  "name": "kontrastudio-vercel-cloudflare-migration-kit",
+  "version": "0.1.0-dev.1",
+  "private": true,
+  "type": "module",
+  "description": "Production-safe Vercel to Cloudflare migration verification tooling.",
+  "scripts": {
+    "guard": "node scripts/guard-domains.mjs",
+    "verify": "node scripts/verify-equivalence.mjs",
+    "test": "node scripts/self-test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
