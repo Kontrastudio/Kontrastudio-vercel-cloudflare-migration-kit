@@ -3,9 +3,8 @@ name: migration-kit-ci
 on:
   pull_request:
   push:
-    branches:
-      - main
-      - feat/initial-migration-kit
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
