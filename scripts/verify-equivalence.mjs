@@ -44,6 +44,20 @@ function normalizedLocation(location, requestUrl) {
   }
 }
 
+function normalizedCrossDeploymentLocation(location, requestUrl, knownOrigins) {
+  if (!location) return null;
+  try {
+    const request = new URL(requestUrl);
+    const resolved = new URL(location, request);
+    if (knownOrigins.has(resolved.origin)) {
+      return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    }
+    return resolved.toString();
+  } catch {
+    return location.trim();
+  }
+}
+
 function htmlSemantics(html) {
   const pick = (pattern) => html.match(pattern)?.[1]?.trim() || null;
   return {
@@ -99,6 +113,10 @@ const headerNames = manifest.verify?.headers || [
   'x-frame-options',
   'permissions-policy'
 ];
+const comparableOrigins = new Set([source.origin, target.origin]);
+
+if (manifest.production?.apex) comparableOrigins.add(`https://${manifest.production.apex}`);
+if (manifest.production?.canonical) comparableOrigins.add(`https://${manifest.production.canonical}`);
 
 if (!routes.length) throw new Error('verify.routes must contain at least one route');
 
@@ -113,8 +131,8 @@ for (const route of routes) {
     ok = false;
   }
 
-  const aLocation = normalizedLocation(a.location, sourceUrl);
-  const bLocation = normalizedLocation(b.location, targetUrl);
+  const aLocation = normalizedCrossDeploymentLocation(a.location, sourceUrl, comparableOrigins);
+  const bLocation = normalizedCrossDeploymentLocation(b.location, targetUrl, comparableOrigins);
   if (aLocation !== bLocation) {
     fail(`${route}: redirect location differs (${JSON.stringify(aLocation)} source, ${JSON.stringify(bLocation)} candidate)`);
     ok = false;
@@ -150,15 +168,47 @@ for (const route of routes) {
 }
 
 for (const redirect of manifest.verify?.redirects || []) {
-  const response = await fetch(redirect.url, {
+  const sourceRequestUrl = redirect.url;
+  const sourceResponse = await fetch(sourceRequestUrl, {
     redirect: 'manual',
     headers: { 'user-agent': 'kontrastudio-vercel-cloudflare-migration-kit/0.1' }
   });
-  const location = response.headers.get('location');
-  if (response.status !== redirect.status || location !== redirect.location) {
-    fail(`redirect ${redirect.url}: expected ${redirect.status} ${redirect.location}, got ${response.status} ${location}`);
+  const sourceLocation = sourceResponse.headers.get('location');
+
+  if (sourceResponse.status !== redirect.status || sourceLocation !== redirect.location) {
+    fail(`redirect ${redirect.url}: expected ${redirect.status} ${redirect.location}, got ${sourceResponse.status} ${sourceLocation}`);
+    continue;
+  }
+
+  const candidateMode = redirect.candidateMode || 'compare';
+  if (candidateMode === 'source-only') {
+    console.log(`✓ source-only redirect ${redirect.url} (candidate recheck deferred to real hostname)`);
+    continue;
+  }
+
+  const sourceParsed = new URL(sourceRequestUrl);
+  const candidateRequestUrl = new URL(
+    `${sourceParsed.pathname}${sourceParsed.search}${sourceParsed.hash}`,
+    target
+  ).toString();
+  const candidateResponse = await fetch(candidateRequestUrl, {
+    redirect: 'manual',
+    headers: { 'user-agent': 'kontrastudio-vercel-cloudflare-migration-kit/0.1' }
+  });
+  const candidateLocation = candidateResponse.headers.get('location');
+  const normalizedSource = normalizedCrossDeploymentLocation(sourceLocation, sourceRequestUrl, comparableOrigins);
+  const normalizedCandidate = normalizedCrossDeploymentLocation(
+    candidateLocation,
+    candidateRequestUrl,
+    comparableOrigins
+  );
+
+  if (candidateResponse.status !== sourceResponse.status || normalizedCandidate !== normalizedSource) {
+    fail(
+      `candidate redirect ${candidateRequestUrl}: source was ${sourceResponse.status} ${JSON.stringify(normalizedSource)}, candidate was ${candidateResponse.status} ${JSON.stringify(normalizedCandidate)}`
+    );
   } else {
-    console.log(`✓ redirect ${redirect.url}`);
+    console.log(`✓ redirect ${redirect.url} ↔ ${candidateRequestUrl}`);
   }
 }
 
